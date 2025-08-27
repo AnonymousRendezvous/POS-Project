@@ -2,12 +2,13 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 // import './index.css'
 // import App from './App.tsx'
-import BodyText from './body'
-import NavBar from "./navbar"
+import NavBar from "./navbar.tsx"
+import CheckOut from "./checkout.tsx"
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <NavBar />
-    <BodyText />
+    <CheckOut />
   </StrictMode>,
 )
+//react components

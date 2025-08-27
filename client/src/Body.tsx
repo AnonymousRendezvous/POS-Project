@@ -9,7 +9,8 @@ export default function BodyText() {
     }
     interface Cart{
         id: number,
-        quantity: number
+        quantity: number,
+        cost:number
     }
     //Typescript syntax, used to assign static typing to dictionaries, in this case, json data
 
@@ -24,20 +25,37 @@ export default function BodyText() {
     }
     //simple code to load the items from the database to the page
 
-    async function addToCart(id:number, quantity:number) {
+    async function addToCart(id:number, quantity:number, cost:number) {
         await fetch("http://localhost:4242/cart", {
             method: "POST",
             headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({id, quantity})
+            body: JSON.stringify({id, quantity, cost})
         })
         //POST request to express server, be careful of body json data
         // Inputs should always come from function, DON'T hardcode data
+        
+        // alert("You have added an item from the cart")
         LoadCart()
+    }
+
+    async function removeFromCart(id: number, removeAll = false) {
+        await fetch("http://localhost:4242/cart", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, removeAll }),
+        });
+        // alert("You have removed item(s) from the cart")
+        LoadCart();
     }
 
     function LoadProducts(){
         return products.map((product) => (
-            <li>{product.id}, {product.title}, {product.description}, {product.cost}</li>
+            <>
+                <ul key={product.id}>{product.id}, {product.title}, {product.description}, {product.cost}</ul>
+                <button onClick={() => addToCart(product.id, 1, product.cost)}>Add to Cart</button>
+                <button onClick={() => removeFromCart(product.id)}>Remove from Cart</button>
+                <button onClick={() => removeFromCart(product.id, true)}>Remove All from Cart</button>
+            </>
         ))
         //Load elements onto page via mapping + return syntax
     }
@@ -56,17 +74,18 @@ export default function BodyText() {
 
     function ShowCart(){
         return cart.map((items) => (
-            <li>{items.id}, {items.quantity}</li>
+            <li>{items.id}, {items.quantity}, {items.cost}</li>
         ))
         // Again, simple map + return syntax to render
+        //!!!VERY IMPORTANT --> include key to prevent re-renders for react
     }
+
 
     return (
         <>
         <ul className="text">
             <LoadProducts />
         </ul>
-        <button onClick={() => addToCart(1, 2)}>Add to Cart</button>
         <ul>
             <ShowCart />
         </ul>

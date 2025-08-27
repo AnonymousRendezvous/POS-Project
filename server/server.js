@@ -35,7 +35,7 @@ app.get("/", async (_,res) => {
     //pooling statement to connect with neondb
     try {
       //Using SQL to query databases for GET requests
-      const result = await client.query("SELECT * FROM products")
+      const result = await client.query("SELECT * FROM products ORDER BY id")
       //display json data
       res.json(result.rows)
     } catch(err){
@@ -51,7 +51,7 @@ app.get("/cart", async (_,res) => {
     const client = await pool.connect()  
     try {
       //Using SQL to query databases
-      const result = await client.query("SELECT * FROM cart")
+      const result = await client.query("SELECT * FROM cart ORDER BY id")
       res.json(result.rows)
     } catch(err){
       console.log(err)
@@ -65,16 +65,20 @@ app.get("/cart", async (_,res) => {
 app.post("/cart", async (req, res) => {
   const client = await pool.connect();
   try {
-    const { id, quantity } = req.body;
+    const { id, quantity, cost} = req.body;
     //request to post entry to database
     const result = await client.query(
-      `INSERT INTO cart (id, quantity) 
-       VALUES ($1, $2) RETURNING *`,
-      [id, quantity]
+      `INSERT INTO cart (id, quantity, cost)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (id) DO UPDATE
+       SET quantity = cart.quantity + EXCLUDED.quantity
+       RETURNING *;`,
+      [id, quantity,cost]
     );
     //SQL code, INSERT inserts data into the cart table, filling the id and quantity columns
     // VALUES ($1, $2) are placeholders 
-    res.json(result.rows[0]);
+    // Checks if the quantity already exists, then set the new quantity
+    res.json(result.rows[0]); 
   } catch (err) {
     console.log(err)
   } 
@@ -83,6 +87,50 @@ app.post("/cart", async (req, res) => {
   }
 });
 
+app.delete("/cart", async (req,res) => {
+  const client = await pool.connect();
+  try {
+    const { id, removeAll } = req.body;
+
+    // If removeAll flag is true → delete the row entirely
+    if (removeAll) {
+      await client.query(`DELETE FROM cart WHERE id = $1`, [id]);
+      return res.json({ message: "Item removed completely" });
+    }
+
+    // Otherwise, decrement the quantity by 1
+    const result = await client.query(
+      `UPDATE cart
+       SET quantity = quantity - 1
+       WHERE id = $1
+       RETURNING *;`,
+      [id]
+    );
+
+    // If no row matched the id
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Item not found" });
+    }
+
+    // If quantity reaches 0, remove the item completely
+    if (result.rows[0].quantity <= 0) {
+      await client.query(`DELETE FROM cart WHERE id = $1`, [id]);
+      return res.json({ message: "Item removed completely" });
+    }
+
+    // Otherwise, return the updated row
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to remove item" });
+  } finally {
+    client.release();
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Listening to http://localhost:${PORT}`);
 });
+
+//MERN without MongoDB
+// Mongo DB, Expressjs, react and nodejs
