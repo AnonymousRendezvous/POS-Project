@@ -13,3 +13,5 @@ To start frontend,
 cd client
 npm run dev
 ```
+
+To be done in two separate terminals in vscode
